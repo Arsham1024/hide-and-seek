@@ -1,4 +1,5 @@
 from sys import flags
+from turtle import window_width
 import pygame
 import random
 import math
@@ -9,7 +10,7 @@ running = True
 pygame.display.set_caption("HIDE AND SEEK")
 
 
-# Global CONSTANTS
+# Global CONSTANTS -----------------------------------------------------------------------------
 # everything depends on the window width
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = WINDOW_WIDTH # make sure the window is a square!
@@ -20,7 +21,9 @@ FOV = math.pi /3 #60 deg
 HALF_FOV = FOV/2
 CASTED_RAYS = 120
 STEP_ANGLE = FOV/CASTED_RAYS
-MAX_DEPTH = WINDOW_WIDTH
+MAX_DEPTH = WINDOW_WIDTH # depth of FOV
+
+PLAYER_SPEED = 5
 
 MAP = (
     '##########'
@@ -35,7 +38,7 @@ MAP = (
     '###### ###'
 )
 
-# global vars
+# global vars -----------------------------------------------------------------------------
 seeker_x = int(WINDOW_WIDTH/2)
 seeker_y = int(WINDOW_WIDTH/2)
 seeker_angle = math.pi
@@ -119,11 +122,22 @@ def cast_rays():
     # for all casted rays 
     for ray in range (CASTED_RAYS):
         for depth in range(MAX_DEPTH):
+            # coordinates of the end of the ray, grows per frame rate
             target_x = seeker_x - math.sin(start_angle) * depth
             target_y = seeker_y + math.cos(start_angle) * depth
+            
+            # find which col & row is the target in based on coordinates
+            col = int(target_x / TILE_SIZE)
+            row = int(target_y / TILE_SIZE)
+            # find index of the tile
+            index_square = row * (MAP_SIZE) + col
 
+            if MAP[index_square] == "#":
+                break
+            
             #draw casted ray 
-            pygame.draw.line(screen, WHITE, (seeker_x, seeker_y), (target_x, target_y))
+            pygame.draw.line(screen, WHITE, (seeker_x-1, seeker_y-1), (target_x-1, target_y-1))
+
         # increment casted ray angle
         start_angle += STEP_ANGLE
 
@@ -146,6 +160,13 @@ while running:
     keys = pygame.key.get_pressed()
     if keys[pygame.K_LEFT]: seeker_angle -= 0.1
     if keys[pygame.K_RIGHT]: seeker_angle += 0.1
+    if keys[pygame.K_UP]:
+        seeker_x += -math.sin(seeker_angle) * PLAYER_SPEED
+        seeker_y += math.cos(seeker_angle) * PLAYER_SPEED
+
+    if keys[pygame.K_DOWN]:
+        seeker_x -= -math.sin(seeker_angle) * PLAYER_SPEED
+        seeker_y -= math.cos(seeker_angle) * PLAYER_SPEED
     
     # draw player on map
     draw_player(seeker_x, seeker_y, PEWTER_BLUE)
@@ -153,6 +174,8 @@ while running:
     draw_player(hider_x, hider_y, BLACK)
     draw_FOV()
     cast_rays()
+
+
     
 
     # Update display at the end
