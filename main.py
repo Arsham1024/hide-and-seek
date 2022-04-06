@@ -16,10 +16,11 @@ WINDOW_WIDTH = 800
 WINDOW_HEIGHT = WINDOW_WIDTH # make sure the window is a square!
 MAP_SIZE = int(WINDOW_WIDTH / 80) # number of rows and cols
 TILE_SIZE = int(WINDOW_WIDTH/MAP_SIZE)
+NUM_TILES = MAP_SIZE ** 2
 
 FOV = math.pi /3 #60 deg
 HALF_FOV = FOV/2
-CASTED_RAYS = 120
+CASTED_RAYS = 100
 STEP_ANGLE = FOV/CASTED_RAYS
 MAX_DEPTH = WINDOW_WIDTH # depth of FOV
 
@@ -28,19 +29,19 @@ PLAYER_SPEED = 5
 MAP = (
     '##########'
     '#    #   #'
-    '#        #'
-    '#  ###   #'
-    '#    ##  #'
-    '#        #'
-    '#  ####  #'
-    '#  #     #'
-    '####     #'
-    '###### ###'
+    '# #    # #'
+    '# # ## # #'
+    '###    # #'
+    '#   #    #'
+    '#  ##### #'
+    '# ##   # #'
+    '#    #   #'
+    '### ######'
 )
 
 # global vars -----------------------------------------------------------------------------
-seeker_x = int(WINDOW_WIDTH/2)
-seeker_y = int(WINDOW_WIDTH/2)
+seeker_x = 200
+seeker_y = 120
 seeker_angle = math.pi
 
 hider_x = 120
@@ -129,19 +130,33 @@ def cast_rays():
             # find which col & row is the target in based on coordinates
             col = int(target_x / TILE_SIZE)
             row = int(target_y / TILE_SIZE)
+
             # find index of the tile
             index_square = row * (MAP_SIZE) + col
-
-            if MAP[index_square] == "#":
+            
+            # if the index bigger than 100 because of the exit
+            if index_square >= NUM_TILES or MAP[index_square] == "#":
                 break
             
             #draw casted ray 
-            pygame.draw.line(screen, WHITE, (seeker_x-1, seeker_y-1), (target_x-1, target_y-1))
+            pygame.draw.line(screen, ANTIQUE_BRASS, (seeker_x, seeker_y), (target_x, target_y))
 
         # increment casted ray angle
         start_angle += STEP_ANGLE
 
+def not_wall():
+        # find which col & row is the target in based on coordinates
+    col = int(seeker_x / TILE_SIZE)
+    row = int(seeker_y / TILE_SIZE)
 
+
+    # find index of the tile
+    index_square = row * (MAP_SIZE) + col
+
+    if MAP[index_square] == "#":
+        return False
+    
+    return True
 
 # Main loop of the game -----------------------------------------------------------------------------
 while running:
@@ -158,25 +173,25 @@ while running:
 
     # get player input
     keys = pygame.key.get_pressed()
+    
     if keys[pygame.K_LEFT]: seeker_angle -= 0.1
     if keys[pygame.K_RIGHT]: seeker_angle += 0.1
-    if keys[pygame.K_UP]:
+
+    if keys[pygame.K_UP] and not_wall():
         seeker_x += -math.sin(seeker_angle) * PLAYER_SPEED
         seeker_y += math.cos(seeker_angle) * PLAYER_SPEED
 
-    if keys[pygame.K_DOWN]:
+    if keys[pygame.K_DOWN] and not_wall():
         seeker_x -= -math.sin(seeker_angle) * PLAYER_SPEED
         seeker_y -= math.cos(seeker_angle) * PLAYER_SPEED
     
     # draw player on map
     draw_player(seeker_x, seeker_y, PEWTER_BLUE)
-    draw_player(flag_x, flag_y, ANTIQUE_BRASS)
+    draw_player(flag_x, flag_y, ANTIQUE_BRASS) # actually draw the flag
     draw_player(hider_x, hider_y, BLACK)
+
     draw_FOV()
     cast_rays()
-
-
-    
 
     # Update display at the end
     pygame.display.flip()
