@@ -18,6 +18,8 @@ MAP_SIZE = int(WINDOW_WIDTH / 80) # number of rows and cols
 TILE_SIZE = int(WINDOW_WIDTH/MAP_SIZE)
 NUM_TILES = MAP_SIZE ** 2
 
+PLAYER_DIAMETER = 10
+
 FOV = math.pi /3 #60 deg
 HALF_FOV = FOV/2
 CASTED_RAYS = 100
@@ -81,7 +83,7 @@ def draw_player(player_x, player_y, color):
         screen,
         color,
         (player_x, player_y),
-        10
+        PLAYER_DIAMETER
     )
 
 def draw_FOV():
@@ -144,18 +146,19 @@ def cast_rays():
         # increment casted ray angle
         start_angle += STEP_ANGLE
 
-def not_wall():
+def is_valid():
+    # position + and - 10px
         # find which col & row is the target in based on coordinates
     col = int(seeker_x / TILE_SIZE)
     row = int(seeker_y / TILE_SIZE)
 
-
     # find index of the tile
     index_square = row * (MAP_SIZE) + col
 
-    if MAP[index_square] == "#":
+        # if the index bigger than 100 because of the exit
+    if index_square >= NUM_TILES or MAP[index_square] == "#":
         return False
-    
+
     return True
 
 # Main loop of the game -----------------------------------------------------------------------------
@@ -177,13 +180,24 @@ while running:
     if keys[pygame.K_LEFT]: seeker_angle -= 0.1
     if keys[pygame.K_RIGHT]: seeker_angle += 0.1
 
-    if keys[pygame.K_UP] and not_wall():
+    if keys[pygame.K_UP]:
         seeker_x += -math.sin(seeker_angle) * PLAYER_SPEED
         seeker_y += math.cos(seeker_angle) * PLAYER_SPEED
+        if not is_valid():
+            # check x and y and see if it is wall
+            # if yes go back to privious x and y
+            # if not move
+            seeker_x -= -math.sin(seeker_angle) * PLAYER_SPEED
+            seeker_y -= math.cos(seeker_angle) * PLAYER_SPEED
 
-    if keys[pygame.K_DOWN] and not_wall():
+
+    if keys[pygame.K_DOWN]:
         seeker_x -= -math.sin(seeker_angle) * PLAYER_SPEED
         seeker_y -= math.cos(seeker_angle) * PLAYER_SPEED
+
+        if not is_valid():
+            seeker_x += -math.sin(seeker_angle) * PLAYER_SPEED
+            seeker_y += math.cos(seeker_angle) * PLAYER_SPEED
     
     # draw player on map
     draw_player(seeker_x, seeker_y, PEWTER_BLUE)
