@@ -129,15 +129,8 @@ def cast_rays():
             target_x = seeker_x - math.sin(start_angle) * depth
             target_y = seeker_y + math.cos(start_angle) * depth
             
-            # find which col & row is the target in based on coordinates
-            col = int(target_x / TILE_SIZE)
-            row = int(target_y / TILE_SIZE)
-
-            # find index of the tile
-            index_square = row * (MAP_SIZE) + col
-            
             # if the index bigger than 100 because of the exit
-            if index_square >= NUM_TILES or MAP[index_square] == "#":
+            if not is_valid(target_x, target_y):
                 break
             
             #draw casted ray 
@@ -146,11 +139,11 @@ def cast_rays():
         # increment casted ray angle
         start_angle += STEP_ANGLE
 
-def is_valid():
+def is_valid(x,y):
     # position + and - 10px
         # find which col & row is the target in based on coordinates
-    col = int(seeker_x / TILE_SIZE)
-    row = int(seeker_y / TILE_SIZE)
+    col = int(x / TILE_SIZE)
+    row = int(y / TILE_SIZE)
 
     # find index of the tile
     index_square = row * (MAP_SIZE) + col
@@ -158,7 +151,6 @@ def is_valid():
         # if the index bigger than 100 because of the exit
     if index_square >= NUM_TILES or MAP[index_square] == "#":
         return False
-
     return True
 
 # Main loop of the game -----------------------------------------------------------------------------
@@ -183,7 +175,7 @@ while running:
     if keys[pygame.K_UP]:
         seeker_x += -math.sin(seeker_angle) * PLAYER_SPEED
         seeker_y += math.cos(seeker_angle) * PLAYER_SPEED
-        if not is_valid():
+        if not is_valid(seeker_x, seeker_y):
             # check x and y and see if it is wall
             # if yes go back to privious x and y
             # if not move
@@ -195,7 +187,7 @@ while running:
         seeker_x -= -math.sin(seeker_angle) * PLAYER_SPEED
         seeker_y -= math.cos(seeker_angle) * PLAYER_SPEED
 
-        if not is_valid():
+        if not is_valid(seeker_x, seeker_y):
             seeker_x += -math.sin(seeker_angle) * PLAYER_SPEED
             seeker_y += math.cos(seeker_angle) * PLAYER_SPEED
     
