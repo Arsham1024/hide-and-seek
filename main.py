@@ -1,3 +1,4 @@
+from os import system
 from sys import flags
 from turtle import update, window_width
 import pygame
@@ -22,9 +23,9 @@ PLAYER_DIAMETER = 10
 
 FOV = math.pi /3 #60 deg
 HALF_FOV = FOV/2
-CASTED_RAYS = 100
+CASTED_RAYS = 120
 STEP_ANGLE = FOV/CASTED_RAYS
-MAX_DEPTH = WINDOW_WIDTH # depth of FOV
+MAX_DEPTH = 240 # depth of FOV
 
 PLAYER_SPEED = 5
 FLAG_CAPTURED = False
@@ -48,7 +49,7 @@ seeker_y = 120
 seeker_angle = math.pi
 
 hider_x = 120
-hider_y = 120
+hider_y = 200
 hider_angle = math.pi
 
 flag_x = 680
@@ -102,6 +103,15 @@ def draw_player(player_x, player_y, color):
         PLAYER_DIAMETER
     )
 
+def draw_flag():
+    if not FLAG_CAPTURED:
+        pygame.draw.circle(
+            screen,
+            ANTIQUE_BRASS,
+            (flag_x, flag_y),
+            10
+        )
+
 def draw_FOV(player_x, player_y, angle):
     # draw direction
     pygame.draw.line(
@@ -144,6 +154,11 @@ def cast_rays():
             # coordinates of the end of the ray, grows per frame rate
             target_x = seeker_x - math.sin(start_angle) * depth
             target_y = seeker_y + math.cos(start_angle) * depth
+
+            # capture the hider if in range
+            if target_y - 1 <= hider_y <= target_y + 1 and target_x - 1 <= hider_x <= target_x + 1:
+                exit()
+                
             
             # if the index bigger than 100 because of the exit
             if not is_valid(target_x, target_y):
@@ -172,6 +187,7 @@ def is_valid(x,y):
 def flag_found():
     if flag_y - 10 <= hider_y <= flag_y + 10 and flag_x - 10 <= hider_x <= flag_x + 10:
         FLAG_CAPTURED = True
+    
 
 # Main loop of the game -----------------------------------------------------------------------------
 while running:
@@ -184,6 +200,7 @@ while running:
         if event.type == pygame.QUIT:
             running = False
     
+
     draw_map()
     
 
@@ -246,17 +263,17 @@ while running:
     draw_FOV(seeker_x, seeker_y, seeker_angle)
     draw_FOV(hider_x, hider_y, hider_angle)
     cast_rays()
-    
-    flag_found()
 
-    if not FLAG_CAPTURED: 
+    # if the hider is within 10 px of the flag capture it and open exit
+    if flag_y - 10 <= hider_y <= flag_y + 10 and flag_x - 10 <= hider_x <= flag_x + 10:
+        FLAG_CAPTURED = True
         MAP = update_map()
-        draw_player(flag_x, flag_y, ANTIQUE_BRASS) # actually draw the flag
+    else:    
+        draw_flag()
     
-    else:
-        draw_player(flag_x, flag_y, WHITE) # actually draw the flag
-        print("flag captured")
-        
+    
+
+           
     
 
     # Update display at the end
