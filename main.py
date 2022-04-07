@@ -1,5 +1,5 @@
 from sys import flags
-from turtle import window_width
+from turtle import update, window_width
 import pygame
 import random
 import math
@@ -27,6 +27,7 @@ STEP_ANGLE = FOV/CASTED_RAYS
 MAX_DEPTH = WINDOW_WIDTH # depth of FOV
 
 PLAYER_SPEED = 5
+FLAG_CAPTURED = False
 
 MAP = (
     '##########'
@@ -38,7 +39,7 @@ MAP = (
     '#  ##### #'
     '# ##   # #'
     '#    #   #'
-    '### ######'
+    '##########'
 )
 
 # global vars -----------------------------------------------------------------------------
@@ -78,6 +79,20 @@ def draw_map():
                 STEEL_TEAL if MAP[square] == '#' else SILVER_SAND,
                 (col*TILE_SIZE, row*TILE_SIZE, TILE_SIZE-1, TILE_SIZE-1) # -1 for the borders
             )
+
+def update_map():
+    return (
+    '##########'
+    '#    #   #'
+    '# #    # #'
+    '# # ## # #'
+    '###    # #'
+    '#   #    #'
+    '#  ##### #'
+    '# ##   # #'
+    '#    #   #'
+    '### ######'
+)
 
 def draw_player(player_x, player_y, color):
     pygame.draw.circle(
@@ -154,8 +169,13 @@ def is_valid(x,y):
         return False
     return True
 
+def flag_found():
+    if flag_y - 10 <= hider_y <= flag_y + 10 and flag_x - 10 <= hider_x <= flag_x + 10:
+        FLAG_CAPTURED = True
+
 # Main loop of the game -----------------------------------------------------------------------------
 while running:
+    
     screen.fill(BLACK)
     
     # All events
@@ -164,8 +184,8 @@ while running:
         if event.type == pygame.QUIT:
             running = False
     
-    # construct the map before everything
     draw_map()
+    
 
     # get player input
     keys = pygame.key.get_pressed()
@@ -217,14 +237,27 @@ while running:
 
 
 
+
     # draw player on map
     draw_player(seeker_x, seeker_y, PEWTER_BLUE)
-    draw_player(flag_x, flag_y, ANTIQUE_BRASS) # actually draw the flag
+    
     draw_player(hider_x, hider_y, BLACK)
 
     draw_FOV(seeker_x, seeker_y, seeker_angle)
     draw_FOV(hider_x, hider_y, hider_angle)
     cast_rays()
+    
+    flag_found()
+
+    if not FLAG_CAPTURED: 
+        MAP = update_map()
+        draw_player(flag_x, flag_y, ANTIQUE_BRASS) # actually draw the flag
+    
+    else:
+        draw_player(flag_x, flag_y, WHITE) # actually draw the flag
+        print("flag captured")
+        
+    
 
     # Update display at the end
     pygame.display.flip()
