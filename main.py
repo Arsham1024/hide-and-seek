@@ -48,6 +48,7 @@ seeker_angle = math.pi
 
 hider_x = 120
 hider_y = 120
+hider_angle = math.pi
 
 flag_x = 680
 flag_y = 120
@@ -86,14 +87,14 @@ def draw_player(player_x, player_y, color):
         PLAYER_DIAMETER
     )
 
-def draw_FOV():
+def draw_FOV(player_x, player_y, angle):
     # draw direction
     pygame.draw.line(
         screen, 
         ANTIQUE_BRASS,
-        (seeker_x, seeker_y), 
-        (seeker_x - math.sin(seeker_angle) * 50,
-         seeker_y + math.cos(seeker_angle) * 50,
+        (player_x, player_y), 
+        (player_x - math.sin(angle) * 50,
+         player_y + math.cos(angle) * 50,
         ),
         3
     )
@@ -101,9 +102,9 @@ def draw_FOV():
     pygame.draw.line(
         screen, 
         ANTIQUE_BRASS,
-        (seeker_x, seeker_y), 
-        (seeker_x - math.sin(seeker_angle - HALF_FOV) * 50,
-         seeker_y + math.cos(seeker_angle - HALF_FOV) * 50,
+        (player_x, player_y), 
+        (player_x - math.sin(angle - HALF_FOV) * 50,
+         player_y + math.cos(angle - HALF_FOV) * 50,
         ),
         3
     )
@@ -111,9 +112,9 @@ def draw_FOV():
     pygame.draw.line(
         screen, 
         ANTIQUE_BRASS,
-        (seeker_x, seeker_y), 
-        (seeker_x - math.sin(seeker_angle + HALF_FOV) * 50,
-         seeker_y + math.cos(seeker_angle + HALF_FOV) * 50,
+        (player_x, player_y), 
+        (player_x - math.sin(angle + HALF_FOV) * 50,
+         player_y + math.cos(angle + HALF_FOV) * 50,
         ),
         3
     )
@@ -168,7 +169,8 @@ while running:
 
     # get player input
     keys = pygame.key.get_pressed()
-    
+
+    # seeker control
     if keys[pygame.K_LEFT]: seeker_angle -= 0.1
     if keys[pygame.K_RIGHT]: seeker_angle += 0.1
 
@@ -182,7 +184,6 @@ while running:
             seeker_x -= -math.sin(seeker_angle) * PLAYER_SPEED
             seeker_y -= math.cos(seeker_angle) * PLAYER_SPEED
 
-
     if keys[pygame.K_DOWN]:
         seeker_x -= -math.sin(seeker_angle) * PLAYER_SPEED
         seeker_y -= math.cos(seeker_angle) * PLAYER_SPEED
@@ -191,12 +192,38 @@ while running:
             seeker_x += -math.sin(seeker_angle) * PLAYER_SPEED
             seeker_y += math.cos(seeker_angle) * PLAYER_SPEED
     
+
+    # hider control 
+    if keys[pygame.K_a]: hider_angle -= 0.1
+    if keys[pygame.K_d]: hider_angle += 0.1
+
+    if keys[pygame.K_w]:
+        hider_x += -math.sin(hider_angle) * PLAYER_SPEED
+        hider_y += math.cos(hider_angle) * PLAYER_SPEED
+        if not is_valid(hider_x, hider_y):
+            # check x and y and see if it is wall
+            # if yes go back to privious x and y
+            # if not move
+            hider_x -= -math.sin(hider_angle) * PLAYER_SPEED
+            hider_y -= math.cos(hider_angle) * PLAYER_SPEED
+
+    if keys[pygame.K_s]:
+        hider_x -= -math.sin(hider_angle) * PLAYER_SPEED
+        hider_y -= math.cos(hider_angle) * PLAYER_SPEED
+
+        if not is_valid(hider_x, hider_y):
+            hider_x += -math.sin(hider_angle) * PLAYER_SPEED
+            hider_y += math.cos(hider_angle) * PLAYER_SPEED
+
+
+
     # draw player on map
     draw_player(seeker_x, seeker_y, PEWTER_BLUE)
     draw_player(flag_x, flag_y, ANTIQUE_BRASS) # actually draw the flag
     draw_player(hider_x, hider_y, BLACK)
 
-    draw_FOV()
+    draw_FOV(seeker_x, seeker_y, seeker_angle)
+    draw_FOV(hider_x, hider_y, hider_angle)
     cast_rays()
 
     # Update display at the end
