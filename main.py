@@ -21,6 +21,9 @@ TILE_SIZE = int(WINDOW_WIDTH/MAP_SIZE)
 NUM_TILES = MAP_SIZE ** 2
 
 PLAYER_DIAMETER = 10
+PLAYER_START_ANGLE = math.pi
+SEEKER_START_POS = (200,120)
+HIDER_START_POS = (120, 200)
 
 FOV = math.pi /3 #60 deg
 HALF_FOV = FOV/2
@@ -30,8 +33,6 @@ MAX_DEPTH = 240 # depth of FOV
 
 PLAYER_SPEED = 5
 FLAG_CAPTURED = False
-FINISHED = False
-HIDER_CAPTURED = False
 
 MAP = (
     '##########'
@@ -47,13 +48,10 @@ MAP = (
 )
 
 # global vars -----------------------------------------------------------------------------
-seeker_x = 200
-seeker_y = 120
-seeker_angle = math.pi
+seeker_x, seeker_y = SEEKER_START_POS[0], SEEKER_START_POS[1]
+hider_x, hider_y = HIDER_START_POS[0], HIDER_START_POS[1]
 
-hider_x = 120
-hider_y = 200
-hider_angle = math.pi
+hider_angle, seeker_angle = PLAYER_START_ANGLE, PLAYER_START_ANGLE
 
 flag_x = 680
 flag_y = 120
@@ -106,8 +104,7 @@ def update_map():
     '#  ##### #'
     '# ##   # #'
     '#    #   #'
-    '###!######'
-)
+    '###!######')
 
 def draw_player(player_x, player_y, color):
     pygame.draw.circle(
@@ -158,6 +155,24 @@ def draw_FOV(player_x, player_y, angle):
         3
     )
 
+def reset():
+    global SEEKER_START_POS, HIDER_START_POS, seeker_x, seeker_y, hider_x, hider_y, MAP, seeker_angle, hider_angle
+    seeker_x, seeker_y = SEEKER_START_POS[0], SEEKER_START_POS[1]
+    hider_x, hider_y = HIDER_START_POS[0], HIDER_START_POS[1] 
+    seeker_angle, hider_angle = PLAYER_START_ANGLE, PLAYER_START_ANGLE
+    MAP = (
+    '##########'
+    '#    #   #'
+    '# #    # #'
+    '# # ## # #'
+    '###    # #'
+    '#   #    #'
+    '#  ##### #'
+    '# ##   # #'
+    '#    #   #'
+    '##########'
+    )
+
 # ray casting algorithm
 def cast_rays():
     global HIDER_CAPTURED, seeker_points
@@ -171,11 +186,11 @@ def cast_rays():
             target_y = seeker_y + math.cos(start_angle) * depth
 
             # capture the hider if in range
-            if target_y - 1 <= hider_y <= target_y + 1 and target_x - 1 <= hider_x <= target_x + 1 and not HIDER_CAPTURED:
+            if target_y - 1 <= hider_y <= target_y + 1 and target_x - 1 <= hider_x <= target_x + 1:
                 seeker_points += 2
                 HIDER_CAPTURED = True
-
-                
+                reset()
+                return 
             
             # if the index bigger than 100 because of the exit
             if not is_valid(target_x, target_y):
@@ -282,18 +297,18 @@ while running:
     cast_rays()
 
     # if the hider is within 10 px of the flag capture it and open exit
-    if flag_y - 10 <= hider_y <= flag_y + 10 and flag_x - 10 <= hider_x <= flag_x + 10 and not FLAG_CAPTURED:
+    if flag_y - 10 <= hider_y <= flag_y + 10 and flag_x - 10 <= hider_x <= flag_x + 10:
         FLAG_CAPTURED = True
         MAP = update_map()
         hider_points += 1
     else:    
         draw_flag()
     
-    
-    if 750 <= hider_y <= 800 and 240 <= hider_x <= 320 and not FINISHED:
+    # hider makes it to exit without being captured
+    if 750 <= hider_y <= 800 and 240 <= hider_x <= 320:
         FINISHED = True
         hider_points += 1
-        # reset the game
+        reset()
 
     
     print( "Seeker's points: ", seeker_points )
