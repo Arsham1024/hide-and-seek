@@ -190,8 +190,9 @@ def cast_rays():
                 seeker_points += 2
                 HIDER_CAPTURED = True
                 reset()
+                # these loops are too fast for the reset() call. so we need to return and end it.
                 return 
-            
+             
             # if the index bigger than 100 because of the exit
             if not is_valid(target_x, target_y):
                 break
