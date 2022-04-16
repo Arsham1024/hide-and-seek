@@ -170,8 +170,7 @@ def reset():
     '#  ##### #'
     '# ##   # #'
     '#    #   #'
-    '##########'
-    )
+    '##########')
 
 # ray casting algorithm
 def cast_rays():

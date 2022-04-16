@@ -1,9 +1,7 @@
 # Solve the open AI car and the hill
-from cProfile import label
 import gym 
 import numpy as np
 import matplotlib.pyplot as plt
-import os
 
 
 env = gym.make("MountainCar-v0")
