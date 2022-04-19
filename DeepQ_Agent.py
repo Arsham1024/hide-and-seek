@@ -85,6 +85,7 @@ class DQNAgent:
     def update_replay_memory(self,transition):
         self.replay_memory.append(transition)
 
-    # revisit and update 255 (rgb)
+    # revisit and update 255 (rgb) -----------------------------------------------------------
     def get_qs(self, terminal_state, step):
         return self.model_predict(np.array(state).reshape(-1,*state.shape)/255)[0]
+    
