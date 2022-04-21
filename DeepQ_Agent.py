@@ -2,10 +2,11 @@
 import tensorflow as tf
 import numpy as np
 from keras.models import Sequential 
-from keras.layers import Dense, Dropout, Conv2D, MaxPooling2D, Activation, Flatten
+from keras.layers import Dense, Dropout, Conv2D, MaxPooling2D, Activation, Flatten, Input
 from keras.callbacks import TensorBoard
 from keras.optimizers import Adam
 from collections import deque
+
 import time
 
 REPLAY_MEMORY_SIZE = 50_000
@@ -61,31 +62,31 @@ class DQNAgent:
         self.target_update_counter = 0
 
     
+# not a cnn : 
+# need more info for input
+# [ X, Y , theta , dist to the wall in front ]
 
     def create_model(self):
         model = tf.Sequential()
 
-        model.add(Conv2D(256, (3, 3), input_shape=env.OBSERVATION_SPACE_VALUES))  # OBSERVATION_SPACE_VALUES = (10, 10, 3) a 10x10 RGB image.
+        model.add(Input(shape=(4,))) # input = [ X, Y , theta , dist to the wall in front ]
+        model.add(Dense(128,)) # tweak number
         model.add(Activation('relu'))
-        model.add(MaxPooling2D(pool_size=(2, 2)))
-        model.add(Dropout(0.2))
-
-        model.add(Conv2D(256, (3, 3)))
+        model.add(Dense(128,))
         model.add(Activation('relu'))
-        model.add(MaxPooling2D(pool_size=(2, 2)))
-        model.add(Dropout(0.2))
+        model.add(Dense(4,)) # Q values expected for each action
 
-        model.add(Flatten())  # this converts our 3D feature maps to 1D feature vectors
-        model.add(Dense(64))
-
-        model.add(Dense(env.ACTION_SPACE_SIZE, activation='linear'))  # ACTION_SPACE_SIZE = how many choices (9)
-        model.compile(loss="mse", optimizer=Adam(lr=0.001), metrics=['accuracy'])
         return model
 
     def update_replay_memory(self,transition):
         self.replay_memory.append(transition)
 
     # revisit and update 255 (rgb) -----------------------------------------------------------
-    def get_qs(self, terminal_state, step):
-        return self.model_predict(np.array(state).reshape(-1,*state.shape)/255)[0]
+    # state : [ X, Y , theta , dist to the wall in front ]
+    def get_qs(self, state):
+        return self.model(np.array(state).reshape(-1,*state.shape)) # return a 4d vector for each action
     
+    def get_action(self, state):
+        # get Q on state
+        # use tf.argmax for the largest Q value -> make sure it is mapped right
+        pass
