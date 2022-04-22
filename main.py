@@ -49,9 +49,9 @@ FLAG_CAPTURED = False
 
 ACTION_TIME = 0.5
 
-# End game conditions
-FINISHED = False
-HIDER_CAPTURED = False
+# End game conditions, IF EITHER IS TRUE GAME IS OVER
+HIDER_WINS = False
+SEEKER_WINS = False
 
 MAP = (
     '##########'
@@ -175,13 +175,13 @@ def draw_FOV(player_x, player_y, angle):
     )
 
 def reset():
-    global SEEKER_START_POS, HIDER_START_POS,FINISHED, HIDER_CAPTURED, seeker_x, seeker_y, hider_x, hider_y, MAP, seeker_angle, hider_angle
+    global SEEKER_START_POS, HIDER_START_POS,HIDER_WINS, SEEKER_WINS, seeker_x, seeker_y, hider_x, hider_y, MAP, seeker_angle, hider_angle
     seeker_x, seeker_y = SEEKER_START_POS[0], SEEKER_START_POS[1]
     hider_x, hider_y = HIDER_START_POS[0], HIDER_START_POS[1] 
     seeker_angle, hider_angle = PLAYER_START_ANGLE, PLAYER_START_ANGLE
 
-    HIDER_CAPTURED = False
-    FINISHED = False
+    SEEKER_WINS = False
+    HIDER_WINS = False
 
     MAP = (
     '##########'
@@ -197,7 +197,7 @@ def reset():
 
 # ray casting algorithm - for seeker
 def cast_rays_seeker():
-    global HIDER_CAPTURED, seeker_points
+    global SEEKER_WINS, seeker_points
     start_angle = seeker_angle - HALF_FOV
 
     # for all casted rays 
@@ -210,10 +210,9 @@ def cast_rays_seeker():
             # capture the hider if in range
             if target_y - 1 <= hider_y <= target_y + 1 and target_x - 1 <= hider_x <= target_x + 1:
                 seeker_points += 2
-                HIDER_CAPTURED = True
-                reset()
+                SEEKER_WINS = True
                 # these loops are too fast for the reset() call. so we need to return and end it.
-                return 
+                return SEEKER_WINS
              
             # if the index bigger than 100 because of the exit
             if not is_valid(target_x, target_y):
@@ -314,13 +313,8 @@ def get_key(action):
 # 4 = don't move
 
 def step(action):
-    global SEEKER_START_POS, HIDER_START_POS, FINISHED, HIDER_CAPTURED, seeker_x, seeker_y, hider_x, hider_y, MAP, seeker_angle, hider_angle, hider_points
+    global SEEKER_START_POS, HIDER_START_POS, HIDER_WINS, SEEKER_WINS, seeker_x, seeker_y, hider_x, hider_y, MAP, seeker_angle, hider_angle, hider_points
     screen.fill(BLACK)
-
-    if FINISHED or HIDER_CAPTURED:    
-        done = True
-    else: 
-        done = False
 
     draw_map()
 
@@ -388,8 +382,11 @@ def step(action):
 
     draw_FOV(seeker_x, seeker_y, seeker_angle)
     draw_FOV(hider_x, hider_y, hider_angle)
-    cast_rays_seeker()
+    
+    # player vision being drawn
+    SEEKER_WINS = cast_rays_seeker()
     dist_towall = cast_rays_hider()
+
 
     # if the hider is within 10 px of the flag capture it and open exit
     if flag_y - 10 <= hider_y <= flag_y + 10 and flag_x - 10 <= hider_x <= flag_x + 10:
@@ -401,14 +398,20 @@ def step(action):
     
     # hider makes it to exit without being captured
     if 750 <= hider_y <= 800 and 240 <= hider_x <= 320:
-        FINISHED = True
+        HIDER_WINS = True
         hider_points += 1
-        reset()
 
+    # check if anyone won the game
+    if HIDER_WINS or SEEKER_WINS:    
+        done = True
+        reset()
+    else: 
+        done = False
     
+    
+    # display the points
     # print( "Seeker's points: ", seeker_points )
     # print( "Hider's points: ", hider_points )
-    
 
     # Update display at the end
     pygame.display.flip()
@@ -425,10 +428,12 @@ if __name__ == "__main__":
 
         state, done = step(action)
 
+        
+
             # All events
         for event in pygame.event.get():
             # if user quits it
-            if event.type == pygame.QUIT or done:
+            if event.type == pygame.QUIT:
                 running = False
 
         
