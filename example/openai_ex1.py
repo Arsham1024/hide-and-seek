@@ -64,6 +64,7 @@ for episode in range(EPISODES):
     
         if render: 
             env.render()
+            
         if not done:
             max_future_q = np.max(q_table[new_discrete_state])
             current_q = q_table[discrete_state + (action, )] #get q value for specific action, rather than all q values for all actions
