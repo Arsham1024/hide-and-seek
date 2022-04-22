@@ -16,10 +16,10 @@ pygame.display.set_caption("HIDE AND SEEK")
 NEAR_WALL = -1
 # hider's rewards
 GOT_THE_FLAG = 50
-HIDER_WINS = 100
+HIDER_WINS_REWARD = 100
 HIDER_LOSES = -200
 # seeker's rewards
-SEEKER_WINS = 150
+SEEKER_WINS_REWARD = 150
 SEEKER_LOSES = -200
 
 NOT_MOVING = -2
@@ -209,7 +209,7 @@ def cast_rays_seeker():
 
             # capture the hider if in range
             if target_y - 1 <= hider_y <= target_y + 1 and target_x - 1 <= hider_x <= target_x + 1:
-                seeker_points += 2
+                seeker_points += SEEKER_WINS_REWARD
                 SEEKER_WINS = True
                 # these loops are too fast for the reset() call. so we need to return and end it.
                 return SEEKER_WINS
@@ -316,6 +316,10 @@ def step(action):
     global SEEKER_START_POS, HIDER_START_POS, HIDER_WINS, SEEKER_WINS, seeker_x, seeker_y, hider_x, hider_y, MAP, seeker_angle, hider_angle, hider_points
     screen.fill(BLACK)
 
+    # these rewards are only for one execution of the step function
+    hider_reward = 0 
+    seeker_reward = 0
+
     draw_map()
 
     # get player input
@@ -392,14 +396,17 @@ def step(action):
     if flag_y - 10 <= hider_y <= flag_y + 10 and flag_x - 10 <= hider_x <= flag_x + 10:
         FLAG_CAPTURED = True
         MAP = update_map()
-        hider_points += 1
+        hider_points += GOT_THE_FLAG # total points thus far
+        hider_reward += GOT_THE_FLAG # only for this execution
+         
     else:    
         draw_flag()
     
     # hider makes it to exit without being captured
     if 750 <= hider_y <= 800 and 240 <= hider_x <= 320:
         HIDER_WINS = True
-        hider_points += 1
+        hider_points += HIDER_WINS_REWARD
+        hider_reward += HIDER_WINS_REWARD
 
     # check if anyone won the game
     if HIDER_WINS or SEEKER_WINS:    
@@ -417,18 +424,16 @@ def step(action):
     pygame.display.flip()
     clock.tick(60) #run faster
 
-    return (hider_x, hider_y, hider_angle, dist_towall), done
+    return (hider_x, hider_y, hider_angle, dist_towall), reward, done
 
 
 
-################## Main Method #######################
+####################### Main Method #######################
 if __name__ == "__main__":
     while running:
         action = random.randint(0,5)
 
-        state, done = step(action)
-
-        
+        state, reward, done = step(action)
 
             # All events
         for event in pygame.event.get():
