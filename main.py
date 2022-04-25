@@ -27,32 +27,40 @@ MOVING = -1
 
 # Global CONSTANTS -----------------------------------------------------------------------------
 # everything depends on the window width
+
+# g=Game specifications
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = WINDOW_WIDTH # make sure the window is a square!
-MAP_SIZE = int(WINDOW_WIDTH / 80) # number of rows and cols
+MAP_SIZE = int(WINDOW_WIDTH / (WINDOW_WIDTH/10)) # number of rows and cols
 TILE_SIZE = int(WINDOW_WIDTH/MAP_SIZE)
 NUM_TILES = MAP_SIZE ** 2
 
 PLAYER_DIAMETER = 10
 PLAYER_START_ANGLE = math.pi
+
+# Start Position of all objects 
 SEEKER_START_POS = (200,120)
 HIDER_START_POS = (680, 680)
+flag_x = 680
+flag_y = 120
 
+
+# PLAYER SETTINGS
+PLAYER_SPEED = 5
+RENDER_FOV = False
 FOV = math.pi /3 #60 deg
 HALF_FOV = FOV/2
 CASTED_RAYS = 120
 STEP_ANGLE = FOV/CASTED_RAYS
 MAX_DEPTH = 240 # depth of FOV
 
-PLAYER_SPEED = 5
-FLAG_CAPTURED = False
-
-ACTION_TIME = 0.5
 
 # End game conditions, IF EITHER IS TRUE GAME IS OVER
+FLAG_CAPTURED = False
 HIDER_WINS = False
 SEEKER_WINS = False
 
+# INITIAL MAP   
 MAP = (
     '##########'
     '#    #   #'
@@ -63,21 +71,17 @@ MAP = (
     '#  ##### #'
     '# ##   # #'
     '#    #   #'
-    '##########'
-)
+    '##########')
 
 # global vars -----------------------------------------------------------------------------
+
 seeker_x, seeker_y = SEEKER_START_POS[0], SEEKER_START_POS[1]
 hider_x, hider_y = HIDER_START_POS[0], HIDER_START_POS[1]
 
 hider_angle, seeker_angle = PLAYER_START_ANGLE, PLAYER_START_ANGLE
 
-flag_x = 680
-flag_y = 120
-
-# Scores 
-seeker_points = 0
-hider_points = 0
+# total Scores 
+seeker_points, hider_points = 0, 0
 
 # Colors palate
 BLACK = (0, 0, 0)
@@ -109,7 +113,7 @@ def draw_map():
             pygame.draw.rect(
                 screen,
                 determine_square_color(MAP[square]),
-                (col*TILE_SIZE, row*TILE_SIZE, TILE_SIZE-1, TILE_SIZE-1) # -1 for the borders
+                (col*TILE_SIZE, row*TILE_SIZE, TILE_SIZE-1, TILE_SIZE-1) # -1 for the gutters
             )
 
 def update_map():
@@ -195,6 +199,7 @@ def reset():
     '#    #   #'
     '##########')
 
+
 # ray casting algorithm - for seeker
 def cast_rays_seeker():
     global SEEKER_WINS, seeker_points
@@ -219,7 +224,8 @@ def cast_rays_seeker():
                 break
             
             #draw casted ray 
-            pygame.draw.line(screen, ANTIQUE_BRASS, (seeker_x, seeker_y), (target_x, target_y))
+            if RENDER_FOV:
+                pygame.draw.line(screen, ANTIQUE_BRASS, (seeker_x, seeker_y), (target_x, target_y))
 
         # increment casted ray angle
         start_angle += STEP_ANGLE
@@ -259,8 +265,9 @@ def cast_rays_hider():
             if not is_valid(target_x, target_y):
                 break
         
-            #draw casted ray 
-            pygame.draw.line(screen, ANTIQUE_BRASS, (hider_x, hider_y), (target_x, target_y))
+            #draw casted ray
+            if RENDER_FOV: 
+                pygame.draw.line(screen, ANTIQUE_BRASS, (hider_x, hider_y), (target_x, target_y))
 
         # increment casted ray angle
         start_angle += STEP_ANGLE
@@ -287,20 +294,7 @@ def flag_found():
         FLAG_CAPTURED = True
         hider_points += 1 # reward the hider
     
-
-def get_key(action):
-    if action == 0:
-        return
-    elif action == 1:
-        return
-    elif action == 2:
-        return
-    elif action == 3:
-        return
-    else:
-        return 
         
-
 # Main loop of the game -------------------------------------------------------------------------------
 # this function is called as oppose to loop. we need to get deep neural network's decision for each move
 # action (int) : between 0-4.
@@ -310,7 +304,7 @@ def get_key(action):
 # 3 = down
 # 4 = don't move
 
-def step(action):
+def step(hider_action, seeker_action):
     global SEEKER_START_POS, HIDER_START_POS, HIDER_WINS, SEEKER_WINS, seeker_x, seeker_y, hider_x, hider_y, MAP, seeker_angle, hider_angle, hider_points
     screen.fill(BLACK)
 
@@ -351,15 +345,15 @@ def step(action):
     else: pass
 
     # ------------- hider control -------------
-    if action == 0: 
+    if hider_action == 0: 
         hider_angle -= 0.1 # turn left
         hider_reward += MOVING # pointlessly moving
-    if action == 2: 
+    if hider_action == 2: 
         hider_angle += 0.1 # turn right
         hider_reward += MOVING # pointlessly moving
 
     # go up
-    if action == 1:
+    if hider_action == 1:
         hider_x += -math.sin(hider_angle) * PLAYER_SPEED
         hider_y += math.cos(hider_angle) * PLAYER_SPEED
         if not is_valid(hider_x, hider_y):
@@ -372,7 +366,7 @@ def step(action):
         hider_reward += MOVING # pointlessly moving
 
     # go down
-    if action == 3:
+    if hider_action == 3:
         hider_x -= -math.sin(hider_angle) * PLAYER_SPEED
         hider_y -= math.cos(hider_angle) * PLAYER_SPEED
 
@@ -391,6 +385,7 @@ def step(action):
     draw_player(seeker_x, seeker_y, PEWTER_BLUE)
     
     draw_player(hider_x, hider_y, BLACK)
+
 
     draw_FOV(seeker_x, seeker_y, seeker_angle)
     draw_FOV(hider_x, hider_y, hider_angle)
@@ -450,13 +445,15 @@ def step(action):
 ####################### Main Method #######################
 if __name__ == "__main__":
     while running:
-        action = random.randint(0,5)
+        hider_action = random.randint(0,5)
+        seeker_action = 0
 
-        state, reward, done = step(action)
+        state, reward, done = step(hider_action, seeker_action)
 
+        # check the state of the hider
         print(state, reward, done)
 
-            # All events
+        # All events
         for event in pygame.event.get():
             # if user quits it
             if event.type == pygame.QUIT:
