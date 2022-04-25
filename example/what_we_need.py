@@ -1,5 +1,27 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import random
+import pygame
+import main
+
+
+running = True 
+
+
+while running:
+        hider_action = random.randint(0,5)
+        seeker_action = 0
+
+        state, reward, done = main.step(hider_action, seeker_action)
+
+        # check the state of the hider
+        print(state, reward, done)
+
+        # All events
+        for event in pygame.event.get():
+            # if user quits it
+            if event.type == pygame.QUIT:
+                running = False
 
 
 # save the env
