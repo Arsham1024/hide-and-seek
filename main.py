@@ -17,10 +17,10 @@ NEAR_WALL = -1
 # hider's rewards
 GOT_THE_FLAG = 50
 HIDER_WINS_REWARD = 100
-HIDER_LOSES = -200
+HIDER_LOSES_PENALTY = -200
 # seeker's rewards
 SEEKER_WINS_REWARD = 150
-SEEKER_LOSES = -200
+SEEKER_LOSES_PENALTY = -200
 
 NOT_MOVING = -2
 MOVING = -1
@@ -247,8 +247,6 @@ def cast_rays_hider():
         elif MAP[index_square] == "#":
             dist_towall = int(math.dist([hider_x, hider_y], [target_x, target_y]))
             # if we are too close to the wall then neg rewards
-            if dist_towall <= 50:
-                hider_points += NEAR_WALL
 
     # for all casted rays 
     for ray in range (CASTED_RAYS):
@@ -353,8 +351,12 @@ def step(action):
     else: pass
 
     # ------------- hider control -------------
-    if action == 0: hider_angle -= 0.1 # turn left
-    if action == 2: hider_angle += 0.1 # turn right
+    if action == 0: 
+        hider_angle -= 0.1 # turn left
+        hider_reward += MOVING # pointlessly moving
+    if action == 2: 
+        hider_angle += 0.1 # turn right
+        hider_reward += MOVING # pointlessly moving
 
     # go up
     if action == 1:
@@ -366,6 +368,8 @@ def step(action):
             # if not move
             hider_x -= -math.sin(hider_angle) * PLAYER_SPEED
             hider_y -= math.cos(hider_angle) * PLAYER_SPEED
+        
+        hider_reward += MOVING # pointlessly moving
 
     # go down
     if action == 3:
@@ -375,9 +379,13 @@ def step(action):
         if not is_valid(hider_x, hider_y):
             hider_x += -math.sin(hider_angle) * PLAYER_SPEED
             hider_y += math.cos(hider_angle) * PLAYER_SPEED
+        
+        hider_reward += MOVING # pointlessly moving
 
     # don't move
-    else: pass
+    else:
+        hider_reward += NOT_MOVING 
+        pass
 
     # draw player on map
     draw_player(seeker_x, seeker_y, PEWTER_BLUE)
@@ -389,7 +397,17 @@ def step(action):
     
     # player vision being drawn
     SEEKER_WINS = cast_rays_seeker()
+
+    # if seeker wins then hider loses
+    if SEEKER_WINS:
+        seeker_reward += SEEKER_WINS_REWARD
+        hider_reward += HIDER_LOSES_PENALTY
+
     dist_towall = cast_rays_hider()
+    if dist_towall <= 15:
+        hider_points += NEAR_WALL
+        hider_reward += NEAR_WALL
+
 
 
     # if the hider is within 10 px of the flag capture it and open exit
@@ -407,6 +425,7 @@ def step(action):
         HIDER_WINS = True
         hider_points += HIDER_WINS_REWARD
         hider_reward += HIDER_WINS_REWARD
+        seeker_reward += SEEKER_LOSES_PENALTY
 
     # check if anyone won the game
     if HIDER_WINS or SEEKER_WINS:    
@@ -424,7 +443,7 @@ def step(action):
     pygame.display.flip()
     clock.tick(60) #run faster
 
-    return (hider_x, hider_y, hider_angle, dist_towall), reward, done
+    return (hider_x, hider_y, hider_angle, dist_towall), hider_reward, done
 
 
 
@@ -434,6 +453,8 @@ if __name__ == "__main__":
         action = random.randint(0,5)
 
         state, reward, done = step(action)
+
+        print(state, reward, done)
 
             # All events
         for event in pygame.event.get():

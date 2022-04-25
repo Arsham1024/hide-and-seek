@@ -69,11 +69,17 @@ class DQNAgent:
     def create_model(self):
         model = tf.Sequential()
 
+        # input layer
         model.add(Input(shape=(4,))) # input = [ X, Y , theta , dist to the wall in front ]
+
+        # hidden 1
         model.add(Dense(128,)) # tweak number
         model.add(Activation('relu'))
+        # hidden 2
         model.add(Dense(128,))
         model.add(Activation('relu'))
+
+        #output layer
         model.add(Dense(4,)) # Q values expected for each action
 
         return model
