@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import random
 import pygame
 import main
+import os
 
 
 running = True 

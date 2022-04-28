@@ -1,8 +1,3 @@
-from os import system
-from sys import flags
-from tkinter.tix import MAIN
-from turtle import update, window_width
-from pip import main
 import pygame
 import pygame.display as display
 import random
@@ -10,16 +5,22 @@ import math
 import os
 
 
+RENDER_GAME = True
+
+if RENDER_GAME:
+    pygame.init()
+else:
+    os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 # needs to be on every game
-pygame.init()
 running = True
-display.set_mode(flags=pygame.HIDDEN)
 display.set_caption("HIDE AND SEEK")
+
 
 # might be the only way to turn off diplay of pygame
 # need to control + c in terminal to stop game
 # os.environ["SDL_VIDEODRIVER"] = "dummy"
+
 
 # Global REWARDS -----------------------------------------------------------------------------
 NEAR_WALL = -1
