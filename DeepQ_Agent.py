@@ -10,7 +10,6 @@ from collections import deque
 import time
 
 REPLAY_MEMORY_SIZE = 50_000
-MODEL_NAME = "256x2" 
 
 # Own Tensorboard class
 class ModifiedTensorBoard(TensorBoard):
