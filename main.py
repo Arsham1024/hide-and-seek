@@ -3,6 +3,7 @@ import pygame.display as display
 import random
 import math
 import os
+import Brains
 
 
 RENDER_GAME = True
@@ -459,6 +460,7 @@ if __name__ == "__main__":
         seeker_action = 0
 
         state, reward, done = step(hider_action, seeker_action)
+
 
         # check the state of the hider
         print(state, reward, done)

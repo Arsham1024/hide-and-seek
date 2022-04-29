@@ -29,13 +29,14 @@ EPSILON = 0.5
 
 # Run one episode While loop -------
 def run_episode():
+
     # Main game switch ---
     RUNNING = True
 
     # Game Timer ------
     start = time.time()
     elapsed = 0
-    GAME_DURATION = 20 # in seconds
+    GAME_DURATION = 30 # in seconds
 
     while RUNNING and elapsed <= GAME_DURATION:
         print(elapsed)
@@ -56,6 +57,11 @@ def run_episode():
         
         # Calculate time passed
         elapsed = time.time() - start
+        if elapsed >= GAME_DURATION:
+            main.reset()
+    
+        if done:
+            RUNNING = False
 
 
 
@@ -96,6 +102,20 @@ if __name__ == '__main__':
     # # Run n episodes
     for i in range(NUM_EPISODES):
         run_episode()
+
+        hider_action = random.randint(0,5)
+        seeker_action = 0
+
+        state, reward, done = main.step(hider_action, seeker_action)
+
+        # check the state of the hider
+        print(state, reward, done)
+
+        # All events
+        for event in pygame.event.get():
+            # if user quits it
+            if event.type == pygame.QUIT:
+                running = False
 
         # How are we gonna make these?
         x = [] # states? steps
