@@ -27,44 +27,6 @@ SHOW_EVERY = 1000
 EPSILON = 0.5
 
 
-# Run one episode While loop -------
-def run_episode():
-
-    # Main game switch ---
-    RUNNING = True
-
-    # Game Timer ------
-    start = time.time()
-    elapsed = 0
-    GAME_DURATION = 30 # in seconds
-
-    while RUNNING and elapsed <= GAME_DURATION:
-        print(elapsed)
-        hider_action = random.randint(0,5)
-        seeker_action = 0
-
-        state, reward, done = main.step(hider_action, seeker_action)
-
-        # check the state of the hider
-        # print(state, reward, done)
-
-        # All events
-        for event in pygame.event.get():
-            # if user quits it
-            if event.type == pygame.QUIT:
-                RUNNING = False
-                exit()
-        
-        # Calculate time passed
-        elapsed = time.time() - start
-        if elapsed >= GAME_DURATION:
-            main.reset()
-    
-        if done:
-            RUNNING = False
-
-
-
 # need more info for input
 # [ X, Y , theta , dist to the wall in front ]
 def create_model():
@@ -94,6 +56,15 @@ def create_model():
 #     dqn = DQNAgent(model=model, memory=memory, policy=policy, 
 #                   nb_actions=actions, nb_steps_warmup=10, target_model_update=1e-2)
 #     return dqn
+
+def Q (state):
+    # insert model here, q_values is a list
+    q_values = model.predict()
+
+    return q_values 
+
+def get_action(state):
+    return random.randint(0,5)
 
 
 # Main Method ------------------------------------------------------------

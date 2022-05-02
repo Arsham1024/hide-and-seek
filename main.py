@@ -1,9 +1,12 @@
+from email import policy
+import re
 import pygame
 import pygame.display as display
 import random
 import math
 import os
 import Brains
+import time
 
 
 RENDER_GAME = True
@@ -45,6 +48,8 @@ WINDOW_HEIGHT = WINDOW_WIDTH # make sure the window is a square!
 MAP_SIZE = int(WINDOW_WIDTH / (WINDOW_WIDTH/10)) # number of rows and cols
 TILE_SIZE = int(WINDOW_WIDTH/MAP_SIZE)
 NUM_TILES = MAP_SIZE ** 2
+
+NUM_EPISODES = 10
 
 PLAYER_DIAMETER = 10
 PLAYER_START_ANGLE = math.pi
@@ -304,6 +309,7 @@ def flag_found():
         global FLAG_CAPTURED, hider_points
         FLAG_CAPTURED = True
         hider_points += 1 # reward the hider
+
     
         
 # Main loop of the game -------------------------------------------------------------------------------
@@ -455,20 +461,59 @@ def step(hider_action, seeker_action):
 
 ####################### Main Method #######################
 if __name__ == "__main__":
-    while running:
-        hider_action = random.randint(0,5)
-        seeker_action = 0
 
-        state, reward, done = step(hider_action, seeker_action)
+    replay_buffer = []
+
+    #  run n episodes
+    for ep in range(NUM_EPISODES):
+        start = time.time()
+        elapsed = 0
+        GAME_DURATION = 30 # in seconds
+        running = True
+        
+        # The current state is the initial position
+        current_state = (HIDER_START_POS[0], HIDER_START_POS[1], hider_angle, math.inf)
+
+        # Run each game
+        while running and elapsed <= GAME_DURATION:
+            print(elapsed)
+
+            ######## See if player hit Quit button
+            for event in pygame.event.get():
+                # if user quits it
+                if event.type == pygame.QUIT:
+                    running = False
+
+            ######## get action for each actor
+            hider_action = Brains.get_action(0)
+            seeker_action = 0
+            
+            ######## take step
+            next_state, reward, done = step(hider_action, seeker_action)
+            if done: running = False
+
+            ######## add to buffer for hider
+            replay_buffer.append(current_state, hider_action, reward, next_state)
+
+            ######## select sample of random states
+            for current_state, hider_action, reward, next_state in random.sample(replay_buffer, 10):
+                estimated_q = reward + Brains.DISCOUNT * Brains.Q(next_state)
+                predicted_q = Brains.Q(current_state)[hider_action] # action we just took
+
+                # What are all the loss stuff?? taken care of by nn?
 
 
-        # check the state of the hider
-        print(state, reward, done)
+            # check the state of the hider
+            print(next_state, reward, done)
 
-        # All events
-        for event in pygame.event.get():
-            # if user quits it
-            if event.type == pygame.QUIT:
+            
+            # Calculate time passed
+            elapsed = time.time() - start
+            if elapsed >= GAME_DURATION:
+                reset()
                 running = False
+        
+        
+
 
         
