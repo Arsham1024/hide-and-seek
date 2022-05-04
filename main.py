@@ -1,12 +1,12 @@
-from email import policy
-import re
 import pygame
 import pygame.display as display
-import random
 import math
 import os
-import Brains
-import time
+import tensorflow as tf
+import numpy as np
+import keras
+from keras.models import Sequential 
+from keras.layers import Dense, Dropout, Conv2D, MaxPooling2D, Activation, Flatten, Input
 
 
 RENDER_GAME = True
@@ -458,62 +458,18 @@ def step(hider_action, seeker_action):
     return (hider_x, hider_y, hider_angle, dist_towall), hider_reward, done
 
 
-
 ####################### Main Method #######################
 if __name__ == "__main__":
 
-    replay_buffer = []
+    brain = brains()
+    print(brain.model.summary())
+    print(brain.target_model.summary())
 
-    #  run n episodes
-    for ep in range(NUM_EPISODES):
-        start = time.time()
-        elapsed = 0
-        GAME_DURATION = 30 # in seconds
-        running = True
-        
-        # The current state is the initial position
-        current_state = (HIDER_START_POS[0], HIDER_START_POS[1], hider_angle, math.inf)
-
-        # Run each game
-        while running and elapsed <= GAME_DURATION:
-            print(elapsed)
-
-            ######## See if player hit Quit button
-            for event in pygame.event.get():
-                # if user quits it
-                if event.type == pygame.QUIT:
-                    running = False
-
-            ######## get action for each actor
-            hider_action = Brains.get_action(0)
-            seeker_action = 0
-            
-            ######## take step
-            next_state, reward, done = step(hider_action, seeker_action)
-            if done: running = False
-
-            ######## add to buffer for hider
-            replay_buffer.append(current_state, hider_action, reward, next_state)
-
-            ######## select sample of random states
-            for current_state, hider_action, reward, next_state in random.sample(replay_buffer, 10):
-                estimated_q = reward + Brains.DISCOUNT * Brains.Q(next_state)
-                predicted_q = Brains.Q(current_state)[hider_action] # action we just took
-
-                # What are all the loss stuff?? taken care of by nn?
+    hider_start_state = (HIDER_START_POS[0],HIDER_START_POS[1],PLAYER_START_ANGLE)
+    seeker_start_state = (SEEKER_START_POS[0],SEEKER_START_POS[1],PLAYER_START_ANGLE)
+    brain.train(10, 10, hider_start_state, seeker_start_state, step(0,0), reset())
 
 
-            # check the state of the hider
-            print(next_state, reward, done)
-
-            
-            # Calculate time passed
-            elapsed = time.time() - start
-            if elapsed >= GAME_DURATION:
-                reset()
-                running = False
-        
-        
 
 
         
