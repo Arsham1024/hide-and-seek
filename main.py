@@ -1,4 +1,5 @@
 
+from turtle import shape
 import pygame
 import pygame.display as display
 import math
@@ -330,7 +331,8 @@ def step(hider_action, seeker_action):
     hider_reward = 0 
     seeker_reward = 0
 
-    draw_map()
+    if RENDER_GAME:
+        draw_map()
 
     # get player input
     keys = pygame.key.get_pressed()
@@ -400,13 +402,11 @@ def step(hider_action, seeker_action):
         pass
 
     # draw player on map
-    draw_player(seeker_x, seeker_y, PEWTER_BLUE)
-    
-    draw_player(hider_x, hider_y, BLACK)
-
-
-    draw_FOV(seeker_x, seeker_y, seeker_angle)
-    draw_FOV(hider_x, hider_y, hider_angle)
+    if RENDER_GAME:
+        draw_player(seeker_x, seeker_y, PEWTER_BLUE)
+        draw_player(hider_x, hider_y, BLACK)
+        draw_FOV(seeker_x, seeker_y, seeker_angle)
+        draw_FOV(hider_x, hider_y, hider_angle)
     
     # player vision being drawn
     SEEKER_WINS = cast_rays_seeker()
@@ -494,7 +494,7 @@ class brains:
         self.UPDATE_EVERY_STEP = 5 # because the step sizes are small
 
         # epsilon
-        self.EPSILON = 0.2 # chaneg to 1.0
+        self.EPSILON = 0.1 # chaneg to 1.0
         self.EPSILON_INTERVAL = 0.9
 
         # Memory buffer
@@ -514,10 +514,10 @@ class brains:
         model.add(Input(shape=(4,))) # input = [ X, Y , theta , dist to the wall in front ]
 
         # hidden 1
-        model.add(Dense(128,name="hiddenlayer1")) # tweak number
+        model.add(Dense(4,name="hiddenlayer1")) # tweak number
         model.add(Activation('relu'))
         # hidden 2
-        model.add(Dense(128,name="hiddenlayer2"))
+        model.add(Dense(4,name="hiddenlayer2"))
         model.add(Activation('relu'))
 
         #output layer
@@ -543,6 +543,7 @@ class brains:
             return self.Q(state)
 
     def train(self, NUM_EPISODES, EP_DURATION, hider_start_state, seeker_start_state):
+        global RENDER_GAME
         #  run n episodes
         for ep in range(NUM_EPISODES):
             start = time.time()
@@ -557,8 +558,19 @@ class brains:
             # The current state is the initial position for hider here
             current_state = (hider_start_state[0], hider_start_state[1], hider_start_state[2], math.inf)
 
+
+            if ep % 10 == 0 :
+                main.RENDER_GAME = True
+            else:
+                main.RENDER_GAME = False
+
             # Run each game and check time limit
             while running and elapsed <= GAME_DURATION:
+                # Calculate time passed
+                elapsed = time.time() - start
+                if elapsed >= GAME_DURATION:
+                    main.reset()
+                    running = False
 
                 # if elapsed % 1000 == 0: print(f"\nTime passed {elapsed}s\n")
 
@@ -605,16 +617,17 @@ class brains:
 
                     # Build the updated Q-values for the sampled future states
                     # Use the target model for stability
-                    future_rewards = self.target_model.predict(next_state_sample)
+                    print(np.reshape(next_state_sample,(4,1)))
+                    future_rewards = self.target_model.predict(np.reshape(next_state_sample,(1,4)))
                     updated_q_values = reward_sample + self.DISCOUNT * tf.reduce_max(future_rewards, axis=1)
                     
 
                     # Create a mask so we only calculate loss on the updated Q-values
-                    masks = tf.one_hot(hider_action_sample, len(self.ACTIONS))
+                    masks = tf.one_hot(hider_action_sample, len(self.ACTIONS)-1)
                     print(masks)
                     
                     with tf.GradientTape() as tape:
-                        q_values = self.model(current_state_sample)
+                        q_values = self.model(np.reshape(next_state_sample,(1,4)))
                         # Calculate loss between new Q-value and old Q-value
                         # Apply the masks to the Q-values to get the Q-value for action taken
                         q_action = tf.reduce_sum(tf.multiply(q_values, masks), axis=1)
@@ -639,11 +652,7 @@ class brains:
             self.EP_REWARD_HISTORY.append(reward)
             
             
-            # Calculate time passed
-            elapsed = time.time() - start
-            if elapsed >= GAME_DURATION:
-                main.reset()
-                running = False
+            
 
 
         # Display the summery of the model trained.   
@@ -659,7 +668,7 @@ if __name__ == "__main__":
 
     hider_start_state = (HIDER_START_POS[0],HIDER_START_POS[1],PLAYER_START_ANGLE)
     seeker_start_state = (SEEKER_START_POS[0],SEEKER_START_POS[1],PLAYER_START_ANGLE)
-    brain.train(10, 10, hider_start_state, seeker_start_state)
+    brain.train(100, 10, hider_start_state, seeker_start_state)
 
 
 
