@@ -38,8 +38,8 @@ HIDER_LOSES_PENALTY = -200
 SEEKER_WINS_REWARD = 150
 SEEKER_LOSES_PENALTY = -200
 
-NOT_MOVING = -2
-MOVING = -1
+NOT_MOVING = -5
+MOVING = 0
 
 # Global CONSTANTS -----------------------------------------------------------------------------
 # everything depends on the window width
@@ -54,23 +54,24 @@ NUM_TILES = MAP_SIZE ** 2
 NUM_EPISODES = 10
 
 PLAYER_DIAMETER = 10
-PLAYER_START_ANGLE = math.pi
+HIDER_START_ANGLE = math.pi
+SEEKER_START_ANGLE = 3 * (math.pi/2)
 
 # Start Position of all objects 
-SEEKER_START_POS = (200,120)
+SEEKER_START_POS = (120,120)
 HIDER_START_POS = (680, 680)
 flag_x = 680
 flag_y = 120
 
 
 # PLAYER SETTINGS
-PLAYER_SPEED = 5
+PLAYER_SPEED = 8
 RENDER_FOV = False
 FOV = math.pi /3 #60 deg
 HALF_FOV = FOV/2
 CASTED_RAYS = 120
 STEP_ANGLE = FOV/CASTED_RAYS
-MAX_DEPTH = 240 # depth of FOV
+MAX_DEPTH = 500 # depth of FOV
 
 
 # End game conditions, IF EITHER IS TRUE GAME IS OVER
@@ -96,7 +97,7 @@ MAP = (
 seeker_x, seeker_y = SEEKER_START_POS[0], SEEKER_START_POS[1]
 hider_x, hider_y = HIDER_START_POS[0], HIDER_START_POS[1]
 
-hider_angle, seeker_angle = PLAYER_START_ANGLE, PLAYER_START_ANGLE
+hider_angle, seeker_angle = HIDER_START_ANGLE, SEEKER_START_ANGLE
 
 # total Scores 
 seeker_points, hider_points = 0, 0
@@ -200,7 +201,7 @@ def reset():
     global SEEKER_START_POS, HIDER_START_POS,HIDER_WINS, SEEKER_WINS, seeker_x, seeker_y, hider_x, hider_y, MAP, seeker_angle, hider_angle
     seeker_x, seeker_y = SEEKER_START_POS[0], SEEKER_START_POS[1]
     hider_x, hider_y = HIDER_START_POS[0], HIDER_START_POS[1] 
-    seeker_angle, hider_angle = PLAYER_START_ANGLE, PLAYER_START_ANGLE
+    seeker_angle, hider_angle = SEEKER_START_ANGLE, HIDER_START_ANGLE
 
     SEEKER_WINS = False
     HIDER_WINS = False
@@ -253,6 +254,8 @@ def cast_rays_hider():
     global hider_points, NUM_TILES
     start_angle = hider_angle - HALF_FOV
     dist_towall = math.inf
+    dist_toseeker = math.inf
+    dist_toflag = math.inf
 
     for depth in range(MAX_DEPTH):
         # the tip of the ray as it is expanding
@@ -282,7 +285,16 @@ def cast_rays_hider():
             # if the index bigger than 100 because of the exit
             if not is_valid(target_x, target_y):
                 break
-        
+
+            # give the hider the ability to see the seeker
+            elif target_y - 1 <= seeker_x <= target_y + 1 and target_x - 1 <= seeker_y <= target_x + 1:
+                dist_toseeker = int(math.dist([hider_x, hider_y], [target_x, target_y]))
+
+            # give the hider the ability to see the flag
+            elif target_y - 1 <= flag_x <= target_y + 1 and target_x - 1 <= flag_y <= target_x + 1:
+                dist_toflag = int(math.dist([hider_x, hider_y], [target_x, target_y]))
+            
+                
             #draw casted ray
             if RENDER_FOV: 
                 pygame.draw.line(screen, ANTIQUE_BRASS, (hider_x, hider_y), (target_x, target_y))
@@ -290,7 +302,7 @@ def cast_rays_hider():
         # increment casted ray angle
         start_angle += STEP_ANGLE
 
-    return dist_towall
+    return dist_towall, dist_toseeker, dist_toflag
 
 def is_valid(x,y):
     # position + and - 10px
@@ -416,7 +428,7 @@ def step(hider_action, seeker_action):
         seeker_reward += SEEKER_WINS_REWARD
         hider_reward += HIDER_LOSES_PENALTY
 
-    dist_towall = cast_rays_hider()
+    dist_towall, dist_toseeker, dist_toflag = cast_rays_hider()
     if dist_towall <= 15:
         hider_points += NEAR_WALL
         hider_reward += NEAR_WALL
@@ -454,9 +466,9 @@ def step(hider_action, seeker_action):
 
     # Update display at the end
     pygame.display.flip()
-    clock.tick(60) #run faster
+    clock.tick(120) #run faster
 
-    return (hider_x, hider_y, hider_angle, dist_towall), hider_reward, done
+    return (hider_x, hider_y, hider_angle, dist_towall, dist_toseeker, dist_toflag), hider_reward, done
 
 
 
@@ -494,7 +506,7 @@ class brains:
         self.UPDATE_EVERY_STEP = 5 # because the step sizes are small
 
         # epsilon
-        self.EPSILON = 0.1 # chaneg to 1.0
+        self.EPSILON = 1.0 # chaneg to 1.0
         self.EPSILON_INTERVAL = 0.9
 
         # Memory buffer
@@ -511,7 +523,7 @@ class brains:
         model = Sequential()
 
         # input layer
-        model.add(Input(shape=(4,))) # input = [ X, Y , theta , dist to the wall in front ]
+        model.add(Input(shape=(6,))) # input = [ X, Y , theta , dist to the wall in front , dist to seeker, dist to flag]
 
         # hidden 1
         model.add(Dense(4,name="hiddenlayer1")) # tweak number
@@ -544,6 +556,7 @@ class brains:
 
     def train(self, NUM_EPISODES, EP_DURATION, hider_start_state, seeker_start_state):
         global RENDER_GAME
+        epsilon_decay_value = self.EPSILON/(NUM_EPISODES - 1)
         #  run n episodes
         for ep in range(NUM_EPISODES):
             start = time.time()
@@ -556,13 +569,16 @@ class brains:
             main.reset() # reset the game
             
             # The current state is the initial position for hider here
-            current_state = (hider_start_state[0], hider_start_state[1], hider_start_state[2], math.inf)
+            current_state = (hider_start_state[0], hider_start_state[1], hider_start_state[2], math.inf, math.inf, math.inf)
 
-
-            if ep % 10 == 0 :
+            if ep % 2 == 0 :
                 main.RENDER_GAME = True
             else:
                 main.RENDER_GAME = False
+
+            # Epsilon decay mechanism (needs clean up, look at the open ai example)
+            if NUM_EPISODES//2 >= ep >= 1:
+                self.EPSILON -= epsilon_decay_value
 
             # Run each game and check time limit
             while running and elapsed <= GAME_DURATION:
@@ -617,17 +633,19 @@ class brains:
 
                     # Build the updated Q-values for the sampled future states
                     # Use the target model for stability
-                    print(np.reshape(next_state_sample,(4,1)))
-                    future_rewards = self.target_model.predict(np.reshape(next_state_sample,(1,4)))
+                    print("here:" , np.reshape(next_state_sample,(1,6)))
+                    future_rewards = self.target_model.predict(np.reshape(next_state_sample,(1,6)))
                     updated_q_values = reward_sample + self.DISCOUNT * tf.reduce_max(future_rewards, axis=1)
                     
 
                     # Create a mask so we only calculate loss on the updated Q-values
+                    print(hider_action_sample)
                     masks = tf.one_hot(hider_action_sample, len(self.ACTIONS)-1)
-                    print(masks)
+                    
+                    print("\nThis is the next_state_sample : " , np.reshape(next_state_sample,(1,6)))
                     
                     with tf.GradientTape() as tape:
-                        q_values = self.model(np.reshape(next_state_sample,(1,4)))
+                        q_values = self.model(np.reshape(next_state_sample,(1,6)))
                         # Calculate loss between new Q-value and old Q-value
                         # Apply the masks to the Q-values to get the Q-value for action taken
                         q_action = tf.reduce_sum(tf.multiply(q_values, masks), axis=1)
@@ -666,9 +684,9 @@ if __name__ == "__main__":
     print(brain.model.summary())
     print(brain.target_model.summary())
 
-    hider_start_state = (HIDER_START_POS[0],HIDER_START_POS[1],PLAYER_START_ANGLE)
-    seeker_start_state = (SEEKER_START_POS[0],SEEKER_START_POS[1],PLAYER_START_ANGLE)
-    brain.train(100, 10, hider_start_state, seeker_start_state)
+    hider_start_state = (HIDER_START_POS[0],HIDER_START_POS[1],HIDER_START_ANGLE)
+    seeker_start_state = (SEEKER_START_POS[0],SEEKER_START_POS[1],SEEKER_START_ANGLE)
+    brain.train(1000, 5, hider_start_state, seeker_start_state)
 
 
 
