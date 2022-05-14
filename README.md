@@ -35,10 +35,21 @@ In the early stages of training, between the 0th to 200th episodes, the players 
 
 ![Alt Text](./media/Captured_flag.gif)
 
+## Q-Learning
+![Alt Text](./media/Formula.jpg)
 
+## Neural Network Architecture
+below shows the neural network with 4 inputs (x,y,theta, distance to the walls) but since then we have improved the neural network to recieve two additional inputs: 1. distance to the flag, 2. distance to the other player. Note that these prameters are only captured if the object or other player is in range/FOV of the player, otherwise the distance is inf the player is essentially unaware.
+![Alt Text](./media/Architecture.jpg)
 
+## Future Work
+This project was more time-consuming and required much more training time than we had originally anticipated. Given more time, we plan to include the following improvements to the future generations of this model:
+• integrate the seeker AI agent.
+• Dedicate more time to training.
+• Improving the code algorithms.
+• Adjust policy rewards and penalties Fine tune the parameters fed into the model.
 
-### Most important requirements 
+## Most important requirements 
 - Python==3.8.13
 - pygame==2.1.2
 - tensorboard==2.8.0
@@ -47,7 +58,7 @@ In the early stages of training, between the 0th to 200th episodes, the players 
 - tensorflow-macos==2.8.0
 - tensorflow-metal==0.4.0
 
-# References
+## References
 #### you can access our [presentation here](https://docs.google.com/presentation/d/1KrOr5-LDAudpJNPdxdsBp3C2E04wXRxbL5YFA8u-bJM/edit?usp=sharing).
 - [OpenAI - Emergent tool use from multi-agent interaction](https://openai.com/blog/emergent-tool-use/)
 - [Keras - reinforcement learning](https://keras.io/examples/rl/deep_q_network_breakout/)
